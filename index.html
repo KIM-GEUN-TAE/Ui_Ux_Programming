@@ -73,7 +73,7 @@
         <section id="pick" class="content-section pick-section">
             <h2>게임 뽑기</h2>
             <p>취향 키워드를 입력하고 버튼을 누르면 조건에 맞는 게임 중 하나를 뽑아드립니다.</p>
-            <form class="pick-form">
+            <form id="pick-form" class="pick-form">
                 <label class="taste-field" for="taste">
                     취향 키워드
                     <input
@@ -83,8 +83,11 @@
                         placeholder="예: 혼자, 힐링, 30분"
                     >
                 </label>
-                <button class="primary-button" type="submit">게임 뽑기</button>
+                <button id="pickButton" class="primary-button" type="submit">게임 뽑기</button>
             </form>
+            <p id="pickMessage" aria-live="polite">
+                취향 키워드를 입력한 뒤 게임을 뽑아 주세요.
+            </p>
         </section>
     </main>
 

@@ -147,6 +147,31 @@ input[type="text"]:focus {
 .primary-button:focus { outline: 3px solid #b9b1f2; outline-offset: 3px; }
 .primary-button:active { transform: translateY(1px); }
 
+/* 뽑기 전 안내 문구 */
+#pickMessage {
+  margin-top: 16px;
+  margin-bottom: 0;
+  color: #5e6272;
+}
+
+/* JavaScript가 is-success를 추가하면 뽑은 게임이 보입니다. */
+#pickMessage.is-success {
+  color: #245c3a;
+  background-color: #e7f7ed;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* 취향을 입력하지 않고 뽑으면 오류 상태를 보여 줍니다. */
+#pickMessage.is-error {
+  color: #a3262e;
+  background-color: #fdecec;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
 /* 페이지 하단 정보는 작고 연하게 둡니다. */
 .site-footer { padding-top: 16px; padding-bottom: 40px; color: #5e6272; font-size: 14px; }
 .site-footer p { margin: 0; }
