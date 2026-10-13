@@ -76,49 +76,6 @@ function pickRandomGame(candidates) {
   return candidates[index];
 }
 
-// 폼이 제출될 때 실행할 함수입니다.
-function handlePick(event) {
-  event.preventDefault();
-
-  const taste = tasteInput.value.trim();
-  const pickAll = allGamesCheck.checked;
-
-  // 전체 뽑기를 선택하면 빈 키워드로 찾으므로 모든 게임이 후보가 됩니다.
-  const candidates = pickAll ? findCandidates("") : findCandidates(taste);
-
-  // 닉네임을 입력했으면 결과 문구 앞에 붙입니다.
-  const nickname = nicknameInput.value.trim();
-  const greeting = nickname === "" ? "" : nickname + "님, ";
-
-  if (!pickAll && taste === "") {
-    // 취향을 입력하지 않으면 오류 문구와 스타일을 보여 줍니다.
-    pickMessage.textContent = "취향 키워드를 먼저 입력해 주세요. (예: 혼자, 힐링, 짧게)";
-    pickMessage.classList.remove("is-success");
-    pickMessage.classList.add("is-error");
-  } else if (candidates.length === 0) {
-    // 키워드가 모두 들어간 게임이 없으면 다른 키워드를 안내합니다.
-    pickMessage.textContent =
-      "'" + taste + "' 취향에 맞는 게임이 없습니다. 키워드를 줄이거나 주요 기능의 취향 고르기 탭에 있는 키워드로 입력해 주세요.";
-    pickMessage.classList.remove("is-success");
-    pickMessage.classList.add("is-error");
-  } else {
-    // 후보 중에서 게임을 뽑고 완료 스타일을 적용합니다.
-    const range = pickAll ? "전체 게임 " : "'" + taste + "' 취향에 맞는 게임 ";
-
-    pickMessage.textContent =
-      greeting + range + candidates.length + "개 중에서 뽑은 오늘의 게임은 「" +
-      pickRandomGame(candidates) + "」입니다!";
-    pickMessage.classList.remove("is-error");
-    pickMessage.classList.add("is-success");
-
-    // 버튼 글자를 바꿔 다시 뽑을 수 있다는 것을 알려 줍니다.
-    pickButton.textContent = "다시 뽑기";
-  }
-}
-
-// submit 이벤트와 함수를 연결합니다.
-pickForm.addEventListener("submit", handlePick);
-
 // 뽑기 설정에서 사용할 다섯 요소를 찾습니다.
 const themeButton = document.querySelector("#themeButton");
 const nicknameInput = document.querySelector("#nickname");
@@ -141,13 +98,13 @@ function handleNicknameInput() {
   nicknameCount.textContent = currentLength + " / 10";
 }
 
-// change · 전체 뽑기 선택 여부에 따라 안내 문구·스타일·입력창 상태를 함께 바꿉니다.
+// change · 키워드 없이 뽑기 선택 여부에 따라 안내 문구·스타일·입력창 상태를 함께 바꿉니다.
 function handleAllGamesChange() {
   const pickAll = allGamesCheck.checked;
 
   tasteInput.disabled = pickAll;
   allGamesMessage.textContent = pickAll
-    ? "취향 키워드 없이 전체 게임 " + games.length + "개 중에서 뽑습니다."
+    ? "취향 키워드 없이 인원·플레이 시간만으로 뽑습니다."
     : "입력한 취향 키워드가 모두 들어간 게임 중에서 뽑습니다.";
 
   allGamesMessage.classList.toggle("is-checked", pickAll);
@@ -193,4 +150,168 @@ function handleTabClick(event) {
 
 tabs.forEach(function (tab) {
   tab.addEventListener("click", handleTabClick);
+});
+
+// 게임 뽑기 흐름에서 사용할 요소를 찾습니다.
+const pickFlow = document.querySelector("#pickFlow");
+const pickNext1 = document.querySelector("#pickNext1");
+const pickSteps = document.querySelectorAll(".pick-step");
+const pickProgress = document.querySelector("#pickProgress");
+const playersSelect = document.querySelector("#players");
+const playTimeSelect = document.querySelector("#playTime");
+const playersHelp = document.querySelector("#playersHelp");
+const selectError = document.querySelector("#selectError");
+const pickSummary = document.querySelector("#pickSummary");
+const pickResult = document.querySelector("#pickResult");
+const stepNames = ["취향 입력", "인원·시간 선택", "내용 확인"];
+
+// 처음 안내 문구를 저장해 두었다가 오류를 고치면 다시 보여 줍니다.
+const tasteGuide = pickMessage.textContent;
+
+// 확인 단계에서 정한 후보 목록입니다. 완료와 다시 뽑기에서 사용합니다.
+let pickCandidates = [];
+
+// 현재 단계만 보여 주고 진행 표시를 바꿉니다.
+function showPickStep(step) {
+  pickSteps.forEach((item) => {
+    item.hidden = Number(item.dataset.step) !== step;
+  });
+
+  pickProgress.textContent = step <= 3
+    ? `${step} / 3 · ${stepNames[step - 1]}`
+    : "뽑기 완료";
+}
+
+// 1·2단계에서 입력·선택한 조건을 키워드 하나로 모읍니다. 상관없음은 빈 값으로 둡니다.
+function getCondition() {
+  const taste = allGamesCheck.checked ? "" : tasteInput.value.trim();
+  const players = playersSelect.value === "상관없음" ? "" : playersSelect.value;
+  const playTime = playTimeSelect.value === "상관없음" ? "" : playTimeSelect.value;
+
+  return `${taste},${players},${playTime}`;
+}
+
+// 확인한 후보 중에서 하나를 뽑아 완료 화면에 보여 줍니다.
+function showPickResult() {
+  const nickname = nicknameInput.value.trim();
+  const greeting = nickname === "" ? "" : `${nickname}님, `;
+
+  pickResult.textContent = `${greeting}오늘의 게임은 「${pickRandomGame(pickCandidates)}」입니다!`;
+}
+
+// 시작 · 기존 게임 뽑기 버튼을 누르면 흐름을 열고 1단계를 보여 줍니다.
+pickButton.addEventListener("click", () => {
+  pickFlow.hidden = false;
+  pickButton.hidden = true;
+  showPickStep(1);
+  // 키워드 없이 뽑기를 선택해 입력창을 쓸 수 없으면 다음 버튼으로 포커스를 옮깁니다.
+  (tasteInput.disabled ? pickNext1 : tasteInput).focus();
+});
+
+// 1단계 · 키워드가 비었거나 맞는 게임이 없으면 같은 단계에서 고치게 합니다.
+pickForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const taste = tasteInput.value.trim();
+  const pickAll = allGamesCheck.checked;
+  const missingTaste = !pickAll && taste === "";
+  const noGame = !pickAll && findCandidates(taste).length === 0;
+
+  if (missingTaste || noGame) {
+    pickMessage.textContent = missingTaste
+      ? "취향 키워드를 입력해 주세요. (예: 힐링, RPG)"
+      : `'${taste}' 키워드가 모두 들어간 게임이 없습니다. 키워드를 줄이거나 주요 기능의 취향 고르기 탭에 있는 키워드로 바꿔 주세요.`;
+    pickMessage.classList.add("is-error");
+    tasteInput.classList.add("has-error");
+    tasteInput.focus();
+    return;
+  }
+
+  pickMessage.textContent = tasteGuide;
+  pickMessage.classList.remove("is-error");
+  tasteInput.classList.remove("has-error");
+  showPickStep(2);
+  playersSelect.focus();
+});
+
+// 2단계 · 인원을 바꾸면 이전 오류를 지우고, 함께를 고르면 기기 확인 안내를 보여 줍니다.
+playersSelect.addEventListener("change", () => {
+  playersHelp.hidden = playersSelect.value !== "함께";
+  selectError.textContent = "";
+  selectError.classList.remove("is-error");
+  playersSelect.classList.remove("has-error");
+});
+
+// 2단계 · 인원을 고르지 않았거나 맞는 게임이 없으면 같은 단계에서 고치게 합니다.
+document.querySelector("#pickNext2").addEventListener("click", () => {
+  const missingPlayers = playersSelect.value === "";
+  const candidates = findCandidates(getCondition());
+
+  if (missingPlayers || candidates.length === 0) {
+    selectError.textContent = missingPlayers
+      ? "함께 할 인원을 선택해 주세요. 상관없다면 '상관없음'을 고르면 됩니다."
+      : "선택한 조건에 맞는 게임이 없습니다. 플레이 시간을 바꾸거나 이전 단계에서 키워드를 수정해 주세요.";
+    selectError.classList.add("is-error");
+    playersSelect.classList.toggle("has-error", missingPlayers);
+    playersSelect.focus();
+    return;
+  }
+
+  selectError.textContent = "";
+  selectError.classList.remove("is-error");
+  playersSelect.classList.remove("has-error");
+
+  // 확인 단계에 입력·선택한 값과 후보 수를 보여 줍니다.
+  pickCandidates = candidates;
+  const taste = allGamesCheck.checked ? "키워드 없이 뽑기" : tasteInput.value.trim();
+  pickSummary.textContent =
+    `키워드: ${taste} · 인원: ${playersSelect.value} · 플레이 시간: ${playTimeSelect.value} → 조건에 맞는 게임 ${candidates.length}개 중에서 뽑습니다.`;
+
+  showPickStep(3);
+  document.querySelector("#pickComplete").focus();
+});
+
+// 이전 단계로 돌아가도 입력·선택한 값은 그대로 둡니다.
+document.querySelector("#pickBack2").addEventListener("click", () => {
+  showPickStep(1);
+  (tasteInput.disabled ? pickNext1 : tasteInput).focus();
+});
+
+document.querySelector("#pickBack3").addEventListener("click", () => {
+  showPickStep(2);
+  playersSelect.focus();
+});
+
+// 완료 · 확인한 조건으로 게임을 뽑고, 같은 조건으로 다시 뽑을 수 있습니다.
+document.querySelector("#pickComplete").addEventListener("click", () => {
+  showPickResult();
+  showPickStep(4);
+  document.querySelector("#pickAgain").focus();
+});
+
+document.querySelector("#pickAgain").addEventListener("click", showPickResult);
+
+// 다시 시작 · 입력·선택·오류·진행 상태를 모두 처음으로 돌립니다.
+document.querySelector("#pickRestart").addEventListener("click", () => {
+  tasteInput.value = "";
+  playersSelect.value = "";
+  playTimeSelect.value = "상관없음";
+
+  pickMessage.textContent = tasteGuide;
+  pickMessage.classList.remove("is-error");
+  selectError.textContent = "";
+  selectError.classList.remove("is-error");
+  [tasteInput, playersSelect].forEach((field) => field.classList.remove("has-error"));
+
+  playersHelp.hidden = true;
+  pickSummary.textContent = "";
+  pickResult.textContent = "";
+  pickCandidates = [];
+
+  // 뽑기 설정의 키워드 없이 뽑기 선택도 풀어 입력창을 다시 쓸 수 있게 합니다.
+  allGamesCheck.checked = false;
+  handleAllGamesChange();
+
+  showPickStep(1);
+  tasteInput.focus();
 });
