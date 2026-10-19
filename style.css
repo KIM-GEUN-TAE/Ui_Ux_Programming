@@ -206,13 +206,17 @@ input[type="text"]:focus,
   cursor: not-allowed;
 }
 
+/* 링크(a)에 붙여도 버튼과 같은 모양이 되도록 표시 방식과 밑줄을 맞춥니다. */
 .primary-button {
+  display: inline-block;
   padding: 12px 18px;
   border: 0;
   border-radius: 8px;
   color: #fff;
   font: inherit;
   font-weight: 700;
+  text-align: center;
+  text-decoration: none;
   background-color: #6a5ae0;
   cursor: pointer;
   transition: background-color .2s ease, transform .1s ease;
@@ -239,7 +243,8 @@ input[type="text"]:focus,
 /* 게임 뽑기 흐름 · 진행 표시와 현재 단계 하나만 보여 줍니다. */
 #pickProgress { margin-bottom: 12px; }
 #pickProgress,
-#pickSummary { font-weight: 700; }
+#pickSummary,
+#recordTarget { font-weight: 700; }
 
 .pick-step {
   padding: 24px;
@@ -251,10 +256,14 @@ input[type="text"]:focus,
 .pick-step[hidden],
 #pickFlow[hidden],
 #pickButton[hidden],
-#playersHelp[hidden] { display: none; }
+#playersHelp[hidden],
+#recordNotice[hidden],
+#recordEmpty[hidden],
+#recordList[hidden] { display: none; }
 
 .pick-step label { display: block; margin-top: 16px; font-weight: 700; }
-.pick-step button { margin-top: 16px; }
+/* 버튼이 세 개 이어져도 서로 붙지 않도록 오른쪽에 간격을 둡니다. */
+.pick-step button { margin-top: 16px; margin-right: 8px; }
 
 .pick-step select {
   display: block;
@@ -274,11 +283,13 @@ input[type="text"]:focus,
   margin-bottom: 0;
 }
 
-#selectError { margin: 12px 0 0; }
+#selectError,
+#recordError { margin: 12px 0 0; }
 
 /* 필수값이 빠졌거나 맞는 게임이 없으면 JavaScript가 is-error를 추가합니다. */
 #pickMessage.is-error,
-#selectError.is-error {
+#selectError.is-error,
+#recordError.is-error {
   color: #a3262e;
   background-color: #fdecec;
   padding: 12px;
@@ -297,6 +308,76 @@ input[type="text"]:focus,
   border-radius: 10px;
   font-weight: 700;
 }
+
+/* 완료 단계의 기록 안내 · 저장에 성공하면 JavaScript가 is-success를 추가해 초록색으로 바뀝니다. */
+#recordNotice {
+  padding: 12px;
+  border-radius: 10px;
+  color: #292a31;
+  background-color: #ecebf2;
+}
+
+#recordNotice.is-success {
+  color: #245c3a;
+  background-color: #e7f7ed;
+  font-weight: 700;
+}
+
+/* 기록 단계 · 별점 1~5점을 한 줄에 두고, 자리가 부족하면 다음 줄로 넘깁니다. */
+.rating-field {
+  min-width: 0;
+  margin: 0;
+  padding: 12px 16px 16px;
+  border: 1px solid #d9d4f5;
+  border-radius: 12px;
+}
+
+.rating-field legend { padding: 0 6px; font-weight: 700; }
+
+.rating-options { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.pick-step .rating-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid #d9d4f5;
+  border-radius: 8px;
+  background-color: #fff;
+  cursor: pointer;
+}
+.pick-step .rating-option:hover { background-color: #ebe8ff; }
+
+/* 내 게임 기록 · 기록 카드를 들어갈 수 있는 만큼 한 줄에 배치합니다. */
+#recordStatus { font-weight: 700; }
+
+.record-empty {
+  padding: 24px;
+  border: 1px dashed #bfc1d1;
+  border-radius: 12px;
+}
+.record-empty p { color: #5e6272; }
+
+.record-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record-item {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #d9d4f5;
+  border-radius: 12px;
+  background-color: #f4f2ff;
+}
+.record-item p { margin-bottom: 8px; color: #5e6272; }
+.record-item .record-rating { color: #6a5ae0; font-weight: 700; }
+.record-item button { margin-top: 4px; }
 
 /* 페이지 하단 정보는 작고 연하게 둡니다. */
 .site-footer { padding-top: 16px; padding-bottom: 40px; color: #5e6272; font-size: 14px; }
@@ -320,10 +401,16 @@ body.dark .pick-section { background-color: #34304a; }
 body.dark .panel,
 body.dark .interaction-item,
 body.dark .pick-step,
-body.dark .tab {
+body.dark .tab,
+body.dark .record-item,
+body.dark .pick-step .rating-option {
   border-color: #50515f;
   background-color: #262731;
 }
+
+body.dark .rating-field,
+body.dark .record-empty { border-color: #50515f; }
+body.dark .record-item .record-rating { color: #b9b1f2; }
 
 body.dark .tab { color: #d8d8e2; }
 body.dark .tab:hover { color: #fff; background-color: #5347c4; }
@@ -403,4 +490,14 @@ body.dark .tab.is-active {
     width: 100%;
     margin: 8px 0 0;
   }
+
+  /* 기록 카드를 한 열로 고정하고, 삭제 버튼을 카드 너비에 맞춤 */
+  .record-list {
+    grid-template-columns: 1fr;
+  }
+
+  .record-empty,
+  .record-item { padding: 16px; }
+
+  .record-item button { width: 100%; }
 }
