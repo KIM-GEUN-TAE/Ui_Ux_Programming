@@ -258,6 +258,7 @@ input[type="text"]:focus,
 #pickButton[hidden],
 #playersHelp[hidden],
 #recordNotice[hidden],
+#stopReasonField[hidden],
 #recordEmpty[hidden],
 #recordList[hidden] { display: none; }
 
@@ -283,13 +284,12 @@ input[type="text"]:focus,
   margin-bottom: 0;
 }
 
-#selectError,
-#recordError { margin: 12px 0 0; }
+#selectError { margin: 12px 0 0; }
 
 /* 필수값이 빠졌거나 맞는 게임이 없으면 JavaScript가 is-error를 추가합니다. */
 #pickMessage.is-error,
 #selectError.is-error,
-#recordError.is-error {
+#recordSubmitStatus.is-error {
   color: #a3262e;
   background-color: #fdecec;
   padding: 12px;
@@ -349,6 +349,76 @@ input[type="text"]:focus,
 }
 .pick-step .rating-option:hover { background-color: #ebe8ff; }
 
+/* 기록 입력 · 항목 사이 간격을 두고, 필수 항목은 이름 옆에 "필수"를 표시합니다. */
+#recordForm .form-field { margin-top: 16px; }
+
+.required-mark {
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: #4a3fc4;
+  font-size: 13px;
+  background-color: #ebe8ff;
+}
+
+.pick-step .check-row { display: flex; }
+
+/* 안내와 글자 수를 한 줄에 두고, 오류 문장이 들어갈 자리를 미리 확보해 화면이 흔들리지 않게 합니다. */
+.field-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.pick-step .field-meta p,
+.pick-step .field-help { margin: 0; font-size: 14px; }
+
+#reviewCount { flex: 0 0 auto; font-weight: 700; }
+
+.pick-step .field-error {
+  min-height: 22px;
+  margin: 4px 0 0;
+  color: #a3262e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 성공 · 한 줄 평이 조건을 맞추면 JavaScript가 is-valid를 추가해 초록 테두리와 문구로 알려 줍니다. */
+#reviewField.is-valid input { border-color: #16805d; }
+#reviewField.is-valid #reviewHelp { color: #16805d; font-weight: 700; }
+
+/* 오류 · JavaScript가 is-error를 추가하면 고쳐야 할 칸을 빨간 테두리로 표시합니다. */
+.form-field.is-error input[type="text"],
+.form-field.is-error select {
+  border-color: #a3262e;
+  background-color: #fff8f8;
+}
+.rating-field.is-error { border-color: #a3262e; }
+
+/* 제출 안내 · 저장 중에는 보라색 상자로 보여 주고, 검사 실패·저장 실패는 위의 빨간 상자를 사용합니다. */
+#recordSubmitStatus { margin: 16px 0 0; font-weight: 700; }
+
+#recordSubmitStatus.is-loading {
+  padding: 12px;
+  border-radius: 10px;
+  color: #3d338f;
+  background-color: #ebe8ff;
+}
+
+/* 저장 중에는 버튼을 누를 수 없도록 회색으로 바꿉니다. */
+.primary-button:disabled {
+  background-color: #9a98a8;
+  cursor: not-allowed;
+}
+
+.secondary-button:disabled {
+  color: #9a98a8;
+  border-color: #c9c8d3;
+  background-color: #fff;
+  cursor: not-allowed;
+}
+
 /* 내 게임 기록 · 기록 카드를 들어갈 수 있는 만큼 한 줄에 배치합니다. */
 #recordStatus { font-weight: 700; }
 
@@ -377,6 +447,7 @@ input[type="text"]:focus,
 }
 .record-item p { margin-bottom: 8px; color: #5e6272; }
 .record-item .record-rating { color: #6a5ae0; font-weight: 700; }
+.record-item .record-stop { color: #8a4b00; font-size: 14px; font-weight: 700; }
 .record-item button { margin-top: 4px; }
 
 /* 페이지 하단 정보는 작고 연하게 둡니다. */
@@ -411,6 +482,12 @@ body.dark .pick-step .rating-option {
 body.dark .rating-field,
 body.dark .record-empty { border-color: #50515f; }
 body.dark .record-item .record-rating { color: #b9b1f2; }
+body.dark .record-item .record-stop { color: #ffc58a; }
+
+/* 어두운 화면에서도 오류·성공 문구와 오류 테두리가 잘 보이도록 밝은 색으로 바꿉니다. */
+body.dark .pick-step .field-error { color: #ff9ea4; }
+body.dark #reviewField.is-valid #reviewHelp { color: #7fd8a4; }
+body.dark .rating-field.is-error { border-color: #ff9ea4; }
 
 body.dark .tab { color: #d8d8e2; }
 body.dark .tab:hover { color: #fff; background-color: #5347c4; }
