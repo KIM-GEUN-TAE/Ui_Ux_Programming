@@ -228,6 +228,8 @@ pickForm.addEventListener("submit", (event) => {
       : `'${taste}' 키워드가 모두 들어간 게임이 없습니다. 키워드를 줄이거나 주요 기능의 취향 고르기 탭에 있는 키워드로 바꿔 주세요.`;
     pickMessage.classList.add("is-error");
     tasteInput.classList.add("has-error");
+    // 빨간 테두리(색)만으로는 화면 낭독기가 알 수 없으므로 aria-invalid로도 오류를 알립니다.
+    tasteInput.setAttribute("aria-invalid", "true");
     tasteInput.focus();
     return;
   }
@@ -235,6 +237,7 @@ pickForm.addEventListener("submit", (event) => {
   pickMessage.textContent = tasteGuide;
   pickMessage.classList.remove("is-error");
   tasteInput.classList.remove("has-error");
+  tasteInput.removeAttribute("aria-invalid");
   showPickStep(2);
   playersSelect.focus();
 });
@@ -245,6 +248,7 @@ playersSelect.addEventListener("change", () => {
   selectError.textContent = "";
   selectError.classList.remove("is-error");
   playersSelect.classList.remove("has-error");
+  playersSelect.removeAttribute("aria-invalid");
 });
 
 // 2단계 · 인원을 고르지 않았거나 맞는 게임이 없으면 같은 단계에서 고치게 합니다.
@@ -258,6 +262,9 @@ document.querySelector("#pickNext2").addEventListener("click", () => {
       : "선택한 조건에 맞는 게임이 없습니다. 플레이 시간을 바꾸거나 이전 단계에서 키워드를 수정해 주세요.";
     selectError.classList.add("is-error");
     playersSelect.classList.toggle("has-error", missingPlayers);
+    if (missingPlayers) {
+      playersSelect.setAttribute("aria-invalid", "true");
+    }
     playersSelect.focus();
     return;
   }
@@ -265,6 +272,7 @@ document.querySelector("#pickNext2").addEventListener("click", () => {
   selectError.textContent = "";
   selectError.classList.remove("is-error");
   playersSelect.classList.remove("has-error");
+  playersSelect.removeAttribute("aria-invalid");
 
   // 확인 단계에 입력·선택한 값과 후보 수를 보여 줍니다.
   pickCandidates = candidates;
@@ -306,7 +314,10 @@ document.querySelector("#pickRestart").addEventListener("click", () => {
   pickMessage.classList.remove("is-error");
   selectError.textContent = "";
   selectError.classList.remove("is-error");
-  [tasteInput, playersSelect].forEach((field) => field.classList.remove("has-error"));
+  [tasteInput, playersSelect].forEach((field) => {
+    field.classList.remove("has-error");
+    field.removeAttribute("aria-invalid");
+  });
 
   playersHelp.hidden = true;
   pickSummary.textContent = "";
@@ -348,6 +359,7 @@ const recordSave = document.querySelector("#recordSave");
 const recordStatus = document.querySelector("#recordStatus");
 const recordEmpty = document.querySelector("#recordEmpty");
 const recordEmptyLink = document.querySelector("#recordEmptyLink");
+const recordShowAll = document.querySelector("#recordShowAll");
 const recordList = document.querySelector("#recordList");
 
 // 기록은 { name, rating, review, stopReason } 객체로 저장하고, 새 기록을 뒤에 넣습니다.
@@ -586,7 +598,7 @@ function getVisibleRecords() {
 }
 
 // 결과가 0개일 때 · 기록이 아예 없는지, 고른 범위에만 없는지 나눠 안내합니다.
-// 게임 뽑기로 가는 링크는 기록이 아예 없을 때만 보여 줍니다.
+// 기록이 아예 없으면 게임 뽑기로 가는 링크를, 고른 범위에만 없으면 전체 기록 보기 버튼을 보여 줍니다.
 function updateRecordEmpty() {
   const filtered = records.length > 0;
   let title = emptyTitle;
@@ -594,7 +606,7 @@ function updateRecordEmpty() {
 
   if (filtered && currentFilter === "replay") {
     title = "다시 할 게임으로 남은 기록이 없습니다.";
-    text = `기록한 게임 ${records.length}개가 모두 다시 하지 않을 게임으로 표시되어 있습니다. 위에서 전체를 누르면 모든 기록을 볼 수 있습니다.`;
+    text = `기록한 게임 ${records.length}개가 모두 다시 하지 않을 게임으로 표시되어 있습니다. 전체 기록 보기를 누르면 모든 기록을 볼 수 있습니다.`;
   } else if (filtered && currentFilter === "stop") {
     title = "다시 하지 않을 게임으로 표시한 기록이 없습니다.";
     text = `기록한 게임 ${records.length}개가 모두 다시 할 게임입니다. 기록을 고칠 때 다시 하지 않을 게임으로 표시하면 여기에 모입니다.`;
@@ -603,6 +615,7 @@ function updateRecordEmpty() {
   recordEmpty.querySelector("h3").textContent = title;
   recordEmpty.querySelector("p").textContent = text;
   recordEmptyLink.hidden = filtered;
+  recordShowAll.hidden = !filtered;
 }
 
 // 기록 목록을 다시 그립니다. 고른 범위의 기록만 그리고, 0개이면 빈 목록 안내를 보여 줍니다.
@@ -645,7 +658,10 @@ function renderRecords() {
   // 목록 · 빈 목록 안내 · 표시 개수를 모두 같은 visibleRecords 기준으로 바꿉니다.
   recordList.hidden = visibleRecords.length === 0;
   recordEmpty.hidden = visibleRecords.length !== 0;
-  recordStatus.textContent = `표시 중인 기록 ${visibleRecords.length}개 / 전체 ${records.length}개`;
+  // 결과 수는 화면 낭독기로 들어도 이해하기 쉽도록 기호(/) 없이 문장으로 알립니다.
+  recordStatus.textContent = records.length === 0
+    ? "기록한 게임이 없습니다."
+    : `기록한 게임 ${records.length}개 중 ${visibleRecords.length}개를 보여 줍니다.`;
 
   if (visibleRecords.length === 0) {
     updateRecordEmpty();
@@ -654,19 +670,29 @@ function renderRecords() {
   updateRecordTexts();
 }
 
-// 필터 버튼 · 누른 버튼만 선택 표시(is-active · aria-pressed)하고, 그 범위로 목록을 다시 그립니다.
+// 필터 선택 · 고른 버튼만 선택 표시(is-active · aria-pressed)하고, 그 범위로 목록을 다시 그립니다.
+function selectFilter(filter) {
+  currentFilter = filter;
+
+  filterButtons.forEach((item) => {
+    const selected = item.dataset.filter === filter;
+    item.classList.toggle("is-active", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
+
+  renderRecords();
+}
+
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    currentFilter = button.dataset.filter;
-
-    filterButtons.forEach((item) => {
-      const selected = item === button;
-      item.classList.toggle("is-active", selected);
-      item.setAttribute("aria-pressed", String(selected));
-    });
-
-    renderRecords();
+    selectFilter(button.dataset.filter);
   });
+});
+
+// 전체 기록 보기 · 전체 필터로 돌아가고, 눌렀던 버튼이 사라지므로 초점을 전체 필터 버튼으로 옮깁니다.
+recordShowAll.addEventListener("click", () => {
+  selectFilter("all");
+  filterButtons[0].focus();
 });
 
 // 기록 삭제 · 지울 게임을 뺀 나머지만 다시 모아 저장하고, 남은 기록이 없으면 빈 목록 안내로 바뀝니다.
@@ -693,13 +719,10 @@ function deleteRecord(name) {
     setRecordNotice("", false);
   }
 
-  // 남은 카드가 보이면 첫 삭제 버튼으로, 기록이 아예 없으면 게임 뽑기 링크로,
-  // 고른 범위에만 남은 기록이 없으면 전체 필터 버튼으로 초점을 옮깁니다.
-  let nextFocus = recordList.querySelector("button");
-  if (nextFocus === null) {
-    nextFocus = records.length === 0 ? recordEmptyLink : filterButtons[0];
-  }
-  nextFocus.focus();
+  // 삭제한 카드와 함께 초점이 사라지지 않도록, 기록이 아예 없으면 게임 뽑기 링크로,
+  // 남은 기록이 있으면 지금 선택한 필터 버튼으로 초점을 돌립니다. 바로 아래에서 결과 문장을 확인할 수 있습니다.
+  const selectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
+  (records.length === 0 ? recordEmptyLink : selectedFilter).focus();
 }
 
 // 저장 · 저장에 시간이 걸리는 상황을 보여 주려고 0.8초 뒤에 브라우저 저장 공간에 저장합니다.
@@ -835,8 +858,9 @@ const menuToggle = document.querySelector("#menu-toggle");
 
 // 현재 위치 · 주소의 #(hash)과 href가 같은 메뉴만 is-current와 aria-current를 붙이고, 나머지에서는 뗍니다.
 // 주소에 #이 없으면(처음 열었을 때) 첫 메뉴인 서비스 소개를 현재 위치로 봅니다.
+// 본문 바로가기(#top)로 이동해도 본문의 첫 영역이 서비스 소개이므로 #이 없을 때와 같게 봅니다.
 function updateCurrentNav() {
-  const hash = window.location.hash;
+  const hash = window.location.hash === "#top" ? "" : window.location.hash;
 
   navLinks.forEach((link) => {
     const current = hash
@@ -850,6 +874,11 @@ function updateCurrentNav() {
       link.removeAttribute("aria-current");
     }
   });
+
+  // 브라우저 탭 제목도 현재 메뉴 이름으로 바꿔, 탭이나 화면 낭독기로도 지금 위치를 알 수 있게 합니다.
+  const currentLink = document.querySelector('.site-nav a[aria-current="page"]');
+  const pageName = currentLink ? currentLink.textContent.trim() : "홈";
+  document.title = pageName + " | 겜뽑기";
 }
 
 // 새로고침·뒤로 가기 때 브라우저가 예전 스크롤 위치를 되살리면 메뉴 표시와 화면이 어긋나므로,
@@ -885,6 +914,16 @@ function setMenuOpen(isOpen) {
 
 menuToggle.addEventListener("click", () => {
   setMenuOpen(!siteNav.classList.contains("is-open"));
+});
+
+// Esc · 펼친 모바일 메뉴를 닫고, 초점을 메뉴 열기 버튼으로 돌려 키보드로 이어서 조작할 수 있게 합니다.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !siteNav.classList.contains("is-open")) {
+    return;
+  }
+
+  setMenuOpen(false);
+  menuToggle.focus();
 });
 
 // 목적지를 고르면 해당 영역으로 이동하고, 펼친 메뉴는 닫아 화면을 콘텐츠에 돌려줍니다.
