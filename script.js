@@ -347,6 +347,7 @@ const recordCancel = document.querySelector("#recordCancel");
 const recordSave = document.querySelector("#recordSave");
 const recordStatus = document.querySelector("#recordStatus");
 const recordEmpty = document.querySelector("#recordEmpty");
+const recordEmptyLink = document.querySelector("#recordEmptyLink");
 const recordList = document.querySelector("#recordList");
 
 // 기록은 { name, rating, review, stopReason } 객체로 저장하고, 새 기록을 뒤에 넣습니다.
@@ -561,11 +562,55 @@ function resetRecordForm() {
   setSubmitState("idle", "");
 }
 
-// 기록 목록을 다시 그립니다. 기록이 없으면 빈 목록 안내를 보여 줍니다.
+// 내 게임 기록 필터에서 사용할 버튼을 찾습니다.
+const filterButtons = document.querySelectorAll(".filter-button");
+
+// 지금 고른 표시 범위입니다. all(전체) · replay(다시 할 게임) · stop(다시 하지 않을 게임)
+let currentFilter = "all";
+
+// 기록이 하나도 없을 때의 안내 문구를 저장해 두었다가 다시 보여 줍니다.
+const emptyTitle = recordEmpty.querySelector("h3").textContent;
+const emptyText = recordEmpty.querySelector("p").textContent;
+
+// 고른 범위에 맞는 기록만 골라냅니다. 다시 하지 않을 게임은 이유(stopReason)를 남긴 기록입니다.
+function getVisibleRecords() {
+  return records.filter((record) => {
+    if (currentFilter === "all") {
+      return true;
+    }
+    if (currentFilter === "stop") {
+      return record.stopReason !== null;
+    }
+    return record.stopReason === null;
+  });
+}
+
+// 결과가 0개일 때 · 기록이 아예 없는지, 고른 범위에만 없는지 나눠 안내합니다.
+// 게임 뽑기로 가는 링크는 기록이 아예 없을 때만 보여 줍니다.
+function updateRecordEmpty() {
+  const filtered = records.length > 0;
+  let title = emptyTitle;
+  let text = emptyText;
+
+  if (filtered && currentFilter === "replay") {
+    title = "다시 할 게임으로 남은 기록이 없습니다.";
+    text = `기록한 게임 ${records.length}개가 모두 다시 하지 않을 게임으로 표시되어 있습니다. 위에서 전체를 누르면 모든 기록을 볼 수 있습니다.`;
+  } else if (filtered && currentFilter === "stop") {
+    title = "다시 하지 않을 게임으로 표시한 기록이 없습니다.";
+    text = `기록한 게임 ${records.length}개가 모두 다시 할 게임입니다. 기록을 고칠 때 다시 하지 않을 게임으로 표시하면 여기에 모입니다.`;
+  }
+
+  recordEmpty.querySelector("h3").textContent = title;
+  recordEmpty.querySelector("p").textContent = text;
+  recordEmptyLink.hidden = filtered;
+}
+
+// 기록 목록을 다시 그립니다. 고른 범위의 기록만 그리고, 0개이면 빈 목록 안내를 보여 줍니다.
 function renderRecords() {
+  const visibleRecords = getVisibleRecords();
   recordList.textContent = "";
 
-  records.forEach((record) => {
+  visibleRecords.forEach((record) => {
     const item = document.createElement("li");
     const title = document.createElement("h3");
     const rating = document.createElement("p");
@@ -597,11 +642,32 @@ function renderRecords() {
     recordList.append(item);
   });
 
-  recordList.hidden = records.length === 0;
-  recordEmpty.hidden = records.length > 0;
-  recordStatus.textContent = `기록한 게임 ${records.length}개`;
+  // 목록 · 빈 목록 안내 · 표시 개수를 모두 같은 visibleRecords 기준으로 바꿉니다.
+  recordList.hidden = visibleRecords.length === 0;
+  recordEmpty.hidden = visibleRecords.length !== 0;
+  recordStatus.textContent = `표시 중인 기록 ${visibleRecords.length}개 / 전체 ${records.length}개`;
+
+  if (visibleRecords.length === 0) {
+    updateRecordEmpty();
+  }
+
   updateRecordTexts();
 }
+
+// 필터 버튼 · 누른 버튼만 선택 표시(is-active · aria-pressed)하고, 그 범위로 목록을 다시 그립니다.
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
+
+    filterButtons.forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle("is-active", selected);
+      item.setAttribute("aria-pressed", String(selected));
+    });
+
+    renderRecords();
+  });
+});
 
 // 기록 삭제 · 지울 게임을 뺀 나머지만 다시 모아 저장하고, 남은 기록이 없으면 빈 목록 안내로 바뀝니다.
 function deleteRecord(name) {
@@ -620,16 +686,19 @@ function deleteRecord(name) {
 
   records = remaining;
   renderRecords();
-  recordStatus.textContent = `「${name}」 기록을 삭제했습니다. 남은 기록 ${records.length}개`;
+  recordStatus.textContent = `「${name}」 기록을 삭제했습니다. ${recordStatus.textContent}`;
 
   // 완료 화면의 게임을 지웠다면 지난번 별점 안내도 지웁니다.
   if (name === currentGame) {
     setRecordNotice("", false);
   }
 
-  const nextFocus = records.length === 0
-    ? document.querySelector("#recordEmptyLink")
-    : recordList.querySelector("button");
+  // 남은 카드가 보이면 첫 삭제 버튼으로, 기록이 아예 없으면 게임 뽑기 링크로,
+  // 고른 범위에만 남은 기록이 없으면 전체 필터 버튼으로 초점을 옮깁니다.
+  let nextFocus = recordList.querySelector("button");
+  if (nextFocus === null) {
+    nextFocus = records.length === 0 ? recordEmptyLink : filterButtons[0];
+  }
   nextFocus.focus();
 }
 
@@ -757,3 +826,70 @@ recordCancel.addEventListener("click", () => {
 
 // 페이지를 열 때 브라우저에 저장된 기록을 내 게임 기록에 보여 줍니다.
 renderRecords();
+
+
+// 주요 메뉴와 모바일 메뉴 버튼을 찾습니다.
+const navLinks = document.querySelectorAll(".site-nav a");
+const siteNav = document.querySelector("#site-nav");
+const menuToggle = document.querySelector("#menu-toggle");
+
+// 현재 위치 · 주소의 #(hash)과 href가 같은 메뉴만 is-current와 aria-current를 붙이고, 나머지에서는 뗍니다.
+// 주소에 #이 없으면(처음 열었을 때) 첫 메뉴인 서비스 소개를 현재 위치로 봅니다.
+function updateCurrentNav() {
+  const hash = window.location.hash;
+
+  navLinks.forEach((link) => {
+    const current = hash
+      ? link.getAttribute("href") === hash
+      : link === navLinks[0];
+
+    link.classList.toggle("is-current", current);
+    if (current) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
+// 새로고침·뒤로 가기 때 브라우저가 예전 스크롤 위치를 되살리면 메뉴 표시와 화면이 어긋나므로,
+// 스크롤 위치는 되살리지 않고 주소의 #에 맞는 영역으로 이동합니다. #이 없으면 맨 위로 이동합니다.
+history.scrollRestoration = "manual";
+
+function showHashSection() {
+  const target = document.getElementById(window.location.hash.slice(1));
+
+  if (target) {
+    target.scrollIntoView();
+  } else {
+    window.scrollTo(0, 0);
+  }
+}
+
+// 메뉴 클릭, 브라우저 뒤로·앞으로 가기로 주소의 #이 바뀔 때마다 다시 표시하고, 새로고침해도 처음에 한 번 표시합니다.
+window.addEventListener("hashchange", updateCurrentNav);
+window.addEventListener("hashchange", showHashSection);
+updateCurrentNav();
+
+// 새로고침 · 주소에 #이 있으면 이미지까지 모두 불러온 뒤 그 영역으로 이동해 위의 이미지 높이 때문에 위치가 밀리지 않게 합니다.
+if (window.location.hash) {
+  window.addEventListener("load", showHashSection);
+}
+
+// 모바일 메뉴 · 메뉴 표시(is-open), 버튼 문구, aria-expanded를 함께 바꿔 서로 어긋나지 않게 합니다.
+function setMenuOpen(isOpen) {
+  siteNav.classList.toggle("is-open", isOpen);
+  menuToggle.textContent = isOpen ? "메뉴 닫기" : "메뉴 열기";
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+}
+
+menuToggle.addEventListener("click", () => {
+  setMenuOpen(!siteNav.classList.contains("is-open"));
+});
+
+// 목적지를 고르면 해당 영역으로 이동하고, 펼친 메뉴는 닫아 화면을 콘텐츠에 돌려줍니다.
+navLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    setMenuOpen(false);
+  });
+});

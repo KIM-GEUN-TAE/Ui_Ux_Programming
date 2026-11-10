@@ -42,10 +42,18 @@ h3 { margin-bottom: 10px; font-size: 20px; }
 
 .header-description { margin-bottom: 28px; color: #5e6272; font-size: 18px; }
 
-/* 메뉴를 한 줄로 배치하고, 자리가 부족하면 다음 줄로 넘깁니다. */
-.site-nav { display: flex; flex-wrap: wrap; gap: 12px; }
+/* 메뉴 목록(ul·li)의 의미는 유지하고 CSS로 한 줄에 배치하며, 자리가 부족하면 다음 줄로 넘깁니다. */
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 
 .site-nav a {
+  display: block;
   padding: 10px 14px;
   border-radius: 8px;
   font-weight: 700;
@@ -53,6 +61,16 @@ h3 { margin-bottom: 10px; font-size: 20px; }
 }
 .site-nav a:hover { color: #4a3fc4; background-color: #ebe8ff; }
 .site-nav a:focus { outline: 3px solid #b9b1f2; outline-offset: 3px; }
+
+/* 현재 위치 · hover와 달리 배경과 아래 선을 함께 사용해 지금 보고 있는 메뉴를 계속 표시합니다. */
+.site-nav a.is-current {
+  color: #4a3fc4;
+  background-color: #ebe8ff;
+  box-shadow: inset 0 -3px 0 #6a5ae0;
+}
+
+/* 메뉴 열기 버튼은 좁은 화면에서만 보입니다. */
+.menu-toggle { display: none; }
 
 /* 각 section을 하나의 카드 영역으로 구분합니다. */
 .content-section {
@@ -260,6 +278,7 @@ input[type="text"]:focus,
 #recordNotice[hidden],
 #stopReasonField[hidden],
 #recordEmpty[hidden],
+#recordEmptyLink[hidden],
 #recordList[hidden] { display: none; }
 
 .pick-step label { display: block; margin-top: 16px; font-weight: 700; }
@@ -419,6 +438,34 @@ input[type="text"]:focus,
   cursor: not-allowed;
 }
 
+/* 기록 필터 · 버튼을 한 줄에 두고, 자리가 부족하면 다음 줄로 넘깁니다. */
+.record-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-button {
+  padding: 8px 16px;
+  border: 1px solid #d9d4f5;
+  border-radius: 999px;
+  color: #5e6272;
+  font: inherit;
+  font-weight: 700;
+  background-color: #fff;
+  cursor: pointer;
+}
+.filter-button:hover { color: #4a3fc4; background-color: #ebe8ff; }
+.filter-button:focus { outline: 3px solid #b9b1f2; outline-offset: 3px; }
+
+/* 선택한 필터 · JavaScript가 is-active와 aria-pressed="true"를 함께 붙이면 주색으로 채웁니다. */
+.filter-button.is-active {
+  color: #fff;
+  border-color: #6a5ae0;
+  background-color: #6a5ae0;
+}
+
 /* 내 게임 기록 · 기록 카드를 들어갈 수 있는 만큼 한 줄에 배치합니다. */
 #recordStatus { font-weight: 700; }
 
@@ -497,6 +544,20 @@ body.dark .tab.is-active {
   background-color: #262731;
 }
 
+body.dark .site-nav a { border-color: #50515f; }
+
+body.dark .filter-button {
+  color: #d8d8e2;
+  border-color: #50515f;
+  background-color: #262731;
+}
+body.dark .filter-button:hover { color: #fff; background-color: #5347c4; }
+body.dark .filter-button.is-active {
+  color: #fff;
+  border-color: #6a5ae0;
+  background-color: #6a5ae0;
+}
+
 /* 웹페이지가 표시되는 가로 폭이 768px 이하일 때만 적용 */
 @media (max-width: 768px) {
   body { font-size: 16px; }
@@ -516,14 +577,25 @@ body.dark .tab.is-active {
 
   .header-description { font-size: 16px; }
 
-  /* 가로 메뉴를 위에서 아래로 배치 */
-  .site-nav {
-    flex-direction: column;
-    align-items: stretch;
+  /* 메뉴를 숨기고 메뉴 열기 버튼으로 펼치거나 접기 */
+  .menu-toggle { display: inline-flex; }
+
+  .site-header .site-nav { display: none; }
+  .site-header .site-nav.is-open {
+    display: block;
+    margin-top: 12px;
+  }
+
+  /* 펼친 메뉴는 위에서 아래로 한 열로 배치 */
+  .site-nav ul {
+    display: grid;
     gap: 8px;
   }
 
-  .site-nav a { padding: 8px 14px; }
+  .site-nav a {
+    padding: 8px 14px;
+    border: 1px solid #d9d4f5;
+  }
 
   .about-layout { gap: 24px; }
 
